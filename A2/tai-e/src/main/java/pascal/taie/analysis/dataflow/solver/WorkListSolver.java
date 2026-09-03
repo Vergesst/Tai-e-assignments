@@ -23,8 +23,11 @@
 package pascal.taie.analysis.dataflow.solver;
 
 import pascal.taie.analysis.dataflow.analysis.DataflowAnalysis;
+import pascal.taie.analysis.dataflow.analysis.constprop.CPFact;
 import pascal.taie.analysis.dataflow.fact.DataflowResult;
 import pascal.taie.analysis.graph.cfg.CFG;
+
+import java.util.LinkedList;
 
 class WorkListSolver<Node, Fact> extends Solver<Node, Fact> {
 
@@ -35,6 +38,21 @@ class WorkListSolver<Node, Fact> extends Solver<Node, Fact> {
     @Override
     protected void doSolveForward(CFG<Node> cfg, DataflowResult<Node, Fact> result) {
         // TODO - finish me
+        var workList = new LinkedList<>(cfg.getNodes());
+        while (!workList.isEmpty()) {
+            Node node = workList.removeFirst();  // 不放回的拿出一个 node
+
+            // 计算 in，调用 meetInto 和 transferNode
+            var in = new CPFact();
+            for(Node pred : cfg.getPredsOf(node)){
+                analysis.meetInto(result.getOutFact(pred), (Fact) in);
+            }
+            // 如果 transferNode 之后有更新，代表
+            if (analysis.transferNode(node, (Fact) in, result.getOutFact(node))) {
+                workList.addAll(cfg.getSuccsOf(node));
+            }
+
+        }
     }
 
     @Override
